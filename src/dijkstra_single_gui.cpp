@@ -4,6 +4,8 @@
 #include <memory>
 #include <set>
 #include <SDL.h>
+#include <random>
+#include <algorithm>
 
 const int block_size = 10;
 
@@ -15,6 +17,7 @@ class Point {
 public:
     Point(int x, int y);
     void setParent(Bag *b);
+    Bag *parent();
 private:
     int x;
     int y;
@@ -68,6 +71,10 @@ void Point::setParent(Bag *b) {
     bag = b;
 }
 
+Bag *Point::parent() {
+    return bag;
+}
+
 int main() {
     int edges;
     std::cout << "How many edges you want to generate? " << std::endl;
@@ -103,5 +110,17 @@ int main() {
     // 
     // shuffer the edge array
     //
-
+    std::shuffle(edges_vec.begin(), edges_vec.end(), std::default_random_engine());
+    auto it = edges_vec.begin();
+    while (bags.size() != 1) {
+        std::pair<std::shared_ptr<Point>, std::shared_ptr<Point>> p 
+                = (*it)->getPoints();
+        if (p.first->parent() == p.second->parent()) {
+            ;
+        } else {
+            std::shared_ptr<Bag> other(p.second->parent());
+            p.first->parent()->merge(other);
+            bags.erase(other);
+        }
+    }
 }
