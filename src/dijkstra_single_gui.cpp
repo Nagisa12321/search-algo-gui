@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <ostream>
 
-const int block_size = 100;
+const int block_size = 20;
 
 class Point;
 class Bag;
@@ -20,6 +20,8 @@ public:
     Point(int x, int y);
     void setParent(Bag *b);
     Bag *parent();
+    void xy(int *x, int *y);
+    void draw(SDL_Renderer *renderer);
 private:
     int x;
     int y;
@@ -30,6 +32,7 @@ class Bag {
 public:
     Bag(Point *p);
     void merge(Bag *other);
+    bool more_than_one_children();
 private:
     std::vector<Point *> points;
 };
@@ -38,6 +41,7 @@ class Edge {
 public:
     Edge(Point *p1, Point *p2);
     std::pair<Point *, Point *> getPoints();
+    void draw(SDL_Renderer *renderer);
 private:
     Point *p1;
     Point *p2;
@@ -51,6 +55,7 @@ Edge::Edge(Point *p1, Point *p2)
 std::pair<Point *, Point *> Edge::getPoints() {
     return { p1, p2 };
 }
+
 Bag::Bag(Point *p)
     : points{ p, }
 {
@@ -81,6 +86,64 @@ Bag *Point::parent() {
 
 std::ostream &operator<<(std::ostream &os, const Point &p) {
     return os << "[" << p.x << ", " << p.y << "]";
+}
+
+
+void Point::xy(int *x, int *y) {
+    *x = this->x;
+    *y = this->y;
+}
+
+bool Bag::more_than_one_children() {
+    return this->points.size() > 1;
+}
+
+
+void Point::draw(SDL_Renderer *renderer) {
+    if (this->bag->more_than_one_children()) {
+        SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
+    } else {
+        SDL_SetRenderDrawColor(renderer, 0xaa, 0xaa, 0xaa, 0xff);
+    }
+    SDL_Rect rect{x * block_size, y * block_size, block_size, block_size};
+    SDL_RenderFillRect(renderer, &rect);
+}
+
+void Edge::draw(SDL_Renderer *renderer) {
+    //
+    // Set the color black;
+    //
+    SDL_SetRenderDrawColor(renderer, 0x0, 0x0, 0x0, 0xff);
+    int x1, x2, y1, y2;
+    p1->xy(&x1, &y1);
+    p2->xy(&x2, &y2);
+
+    if (x1 == x2) {
+        int x = x1; 
+        int y = std::max(y1, y2);
+        SDL_RenderDrawLine(renderer, x * block_size, y * block_size, 
+                           (x + 1) * block_size, y * block_size);
+    } else {
+        int x = std::max(x1, x2);
+        int y = y1;
+        SDL_RenderDrawLine(renderer, x * block_size, y * block_size, 
+                           x * block_size, (y + 1) * block_size);
+    }
+}
+
+void draw_map(SDL_Renderer *renderer, std::set<Edge *> edges, std::vector<Point *> points) {
+    SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
+    //
+    // Set the map white
+    //
+    SDL_RenderFillRect(renderer, 0x0);
+    for (Point *point : points) {
+        point->draw(renderer);
+    }
+    for (Edge *edge : edges) {
+        edge->draw(renderer);
+    }
+    SDL_RenderPresent(renderer);
 }
 
 int main() {
@@ -115,6 +178,7 @@ int main() {
 
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
+
     // Kruskal's Algorithm
     std::set<Bag *> bags;
     std::vector<Point *> points;
@@ -141,6 +205,12 @@ int main() {
             }
         }
     }
+
+    std::set<Edge *> edges_to_draw(edges_vec.begin(), edges_vec.end());
+    // 
+    // draw the map 
+    //
+    draw_map(renderer, edges_to_draw, points);
     
     // 
     // shuffer the edge array
@@ -162,8 +232,14 @@ int main() {
             // remove rhs
             bags.erase(rhs);
             delete rhs;
+
+            edges_to_draw.erase(*it);
         }
         ++it;
+
+        SDL_Delay(8);
+
+        draw_map(renderer, edges_to_draw, points);
     }
 
     for (Edge *edge : edges_vec) {
