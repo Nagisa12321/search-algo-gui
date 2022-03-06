@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <ostream>
 
-const int block_size = 10;
+const int block_size = 100;
 
 class Point;
 class Bag;
@@ -88,6 +88,33 @@ int main() {
     std::cout << "How many edges you want to generate? " << std::endl;
     std::cin >> edges;
 
+    // 
+    // Init SDL 
+    //
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
+        SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
+        return 1;
+    }
+
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+
+    // 
+    // Create window and renderer
+    //
+    
+    // Create an application window with the following settings:
+    window = SDL_CreateWindow(
+        "An SDL2 window",                  // window title
+        SDL_WINDOWPOS_UNDEFINED,           // initial x position
+        SDL_WINDOWPOS_UNDEFINED,           // initial y position
+        edges * block_size,                               // width, in pixels
+        edges * block_size,                               // height, in pixels
+        SDL_WINDOW_OPENGL                  // flags - see below
+    );
+
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
     // Kruskal's Algorithm
     std::set<Bag *> bags;
     std::vector<Point *> points;
@@ -156,4 +183,16 @@ int main() {
     for (Edge *edge : edges_vec) {
         delete edge;
     }
+    // delay 3 s
+    SDL_Delay(3000);
+
+    // 
+    // Destory window and renderer
+    //
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+
+    // quit SDL 
+    SDL_Quit();
+
 }
